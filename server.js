@@ -125,6 +125,44 @@ app.post('/login', (req, res) => {
     });
 });
 
+app.get('/usuarios/:userId/rotas/:rota', (req, res) => {
+    const { userId, rota } = req.params;
+
+    linkController.getLinkByUserAndRoute(userId, rota, (err, row) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Erro no servidor');
+            return;
+        }
+
+        if (!row) {
+            res.status(404).send('Rota não encontrada para este usuário');
+            return;
+        }
+
+        res.redirect(row.url);
+    });
+});
+
+app.get('/usuarios/:userId/rotas', (req, res) => {
+    const { userId } = req.params;
+
+    linkController.getAllLinksByUser(userId, (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Erro no servidor');
+            return;
+        }
+
+        if (rows.length === 0) {
+            res.status(404).send('Nenhuma rota encontrada para este usuário');
+            return;
+        }
+
+        res.json(rows);
+    });
+});
+
 // Rota padrão
 app.get('/', (req, res) => {
     res.send('Servidor rodando! Vá para /rotas/minha-rota para ser redirecionado.');

@@ -17,13 +17,14 @@ db.serialize(() => {
         email TEXT NOT NULL UNIQUE,
         senha TEXT NOT NULL
     )`)
+
+    db.run(`ALTER TABLE links ADD COLUMN user_id INTEGER`)
     
     // Inserir dados de exemplo
-    db.run(`INSERT INTO links (rota, nome, url) VALUES ('minha-rota', 'Minha Rota', 'https://www.google.com')`);
     db.run(`INSERT INTO usuarios (nome, email, senha) VALUES ('Teste Teste', 'teste@teste.com', '$2b$10$28njEtSUeCbmUuiQ36AhFOTkQADz6Fj/pGi7UlDJsDdu6Qoky6GDS')`);
+    db.run(`INSERT INTO links (rota, nome, url, user_id) VALUES ('minha-rota', 'Minha Rota', 'https://www.google.com', 1)`);
     
     console.log("Tabela criada e dados inseridos!");
-    bcrypt.hash('qwe123', 10, (err, hash) => console.log(hash))
 });
 
 db.close();

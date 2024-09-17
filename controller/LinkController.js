@@ -5,6 +5,26 @@ class LinkController {
         this.db = databaseFile;
     }
 
+    getAllLinksByUser(userId, callback) {
+        const query = 'SELECT * FROM links WHERE user_id = ?';
+        this.db.all(query, [userId], (err, rows) => {
+            if (err) {
+                return callback(err, null);
+            }
+            return callback(null, rows);
+        });
+    }
+
+    getLinkByUserAndRoute(userId, rota, callback) {
+        const query = 'SELECT url FROM links WHERE user_id = ? AND rota = ?';
+        this.db.get(query, [userId, rota], (err, row) => {
+            if (err) {
+                return callback(err, null);
+            }
+            return callback(null, row);
+        });
+    }
+
     // Método para buscar uma rota específica
     getLinkByRoute(rota, callback) {
         const query = 'SELECT url FROM links WHERE rota = ?';
