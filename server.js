@@ -1,72 +1,127 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
+const LinkController = require('./controller/LinkController');
+const UserController = require('./controller/UserController');
+
 const app = express();
 
 // Porta onde o servidor vai rodar
 const PORT = 8080;
 
-// Conexão com banco de dados
-const db = new sqlite3.Database('./database.db');
+// Abrir controller
+const database = new sqlite3.Database('./database.db');
+const linkController = new LinkController(database);
+const userController = new UserController(database);
+
 
 // permitindo receber dados via json
 app.use(bodyParser.json());
 
 // Rota que redireciona
 app.get('/rotas/:rota', (req, res) => {
-
     const rota = req.params.rota;
 
-    db.get('SELECT url FROM links WHERE rota = ?', [rota], (err, row) => {
+    // Usar o método da classe LinkController para buscar a rota
+    linkController.getLinkByRoute(rota, (err, row) => {
         if (err) {
             console.error(err.message);
             res.status(500).send('Erro no servidor');
             return;
         }
 
-        // Se a rota não for encontrada
         if (!row) {
             res.status(404).send('Rota não encontrada');
             return;
         }
 
-        // Redireciona para a URL encontrada
         res.redirect(row.url);
     });
 });
 
 app.post('/rotas', (req, res) => {
-    console.log(req.body)
     const { rota, nome, url } = req.body;
 
     if (!rota || !url) {
         return res.status(400).send('Campos obrigatórios: rota e url');
     }
 
-    // Inserir os dados na tabela "links"
-    const query = 'INSERT INTO links (rota, nome, url) VALUES (?, ?, ?)';
-    db.run(query, [rota, nome, url], function (err) {
+    // Usar o método da classe LinkController para adicionar uma nova rota
+    linkController.add(rota, nome, url, (err, result) => {
         if (err) {
             console.error('Erro ao inserir no banco de dados:', err.message);
             res.status(500).send('Erro ao inserir no banco de dados');
-        } else {
-            res.send(`Rota adicionada com sucesso! ID: ${this.lastID}`);
+            return;
         }
+
+        res.send(`Rota adicionada com sucesso! ID: ${result.id}`);
     });
 });
 
 // listando todas as rotas
 app.get('/rotas', (req, res) => {
-    // Consulta todas as rotas no banco de dados
-    db.all('SELECT * FROM links', (err, rows) => {
+    // Usar o método da classe LinkController para listar todas as rotas
+    linkController.index((err, rows) => {
         if (err) {
             console.error(err.message);
             res.status(500).send('Erro no servidor');
             return;
         }
 
-        // Retorna todas as rotas como JSON
         res.json(rows);
+    });
+});
+
+// Rota para adicionar um novo usuário
+app.post('/adicionar-usuario', (req, res) => {
+    const { nome, email, senha } = req.body;
+
+    if (!nome || !email || !senha) {
+        return res.status(400).send('Campos obrigatórios: nome, email e senha');
+    }
+
+    userController.add(nome, email, senha, (err, result) => {
+        if (err) {
+            console.error('Erro ao adicionar usuário:', err.message);
+            return res.status(500).send('Erro ao adicionar usuário');
+        }
+
+        res.send(`Usuário adicionado com sucesso! ID: ${result.id}`);
+    });
+});
+
+// Rota para listar todos os usuários
+app.get('/usuarios', (req, res) => {
+    userController.index((err, rows) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send('Erro no servidor');
+            return;
+        }
+
+        res.json(rows);
+    });
+});
+
+// Rota para verificar login (autenticar usuário)
+app.post('/login', (req, res) => {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+        return res.status(400).send('Campos obrigatórios: email e senha');
+    }
+
+    userController.verifyUser(email, senha, (err, user) => {
+        if (err) {
+            console.error('Erro ao verificar usuário:', err.message);
+            return res.status(500).send('Erro ao verificar usuário');
+        }
+
+        if (!user) {
+            return res.status(401).send('Credenciais inválidas');
+        }
+
+        res.send(`Login bem-sucedido! Bem-vindo, ${user.nome}`);
     });
 });
 
